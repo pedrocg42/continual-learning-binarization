@@ -1,0 +1,5 @@
+# Avoiding to upload the cache
+__pycache__
+
+# Avoiding to upload heavy results
+results
