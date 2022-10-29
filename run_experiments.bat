@@ -1,29 +1,62 @@
-@REM python train.py --experiment unet_all_sets
-@REM python predict.py --experiment unet_all_sets
+@REM #################################################################
+@REM ################            SCENARIO 1              #############
+@REM #################################################################
 
-python train.py --experiment baseline_all_sets
-python predict.py --experiment baseline_all_sets
+@REM python train.py --experiment baseline_scenario_1
+@REM python evaluate.py --experiment baseline_scenario_1
 
-python train.py --experiment vq_all_sets
-python predict.py --experiment vq_all_sets
+@REM python train.py --experiment vq_scenario_1
+@REM python evaluate.py --experiment vq_scenario_1
 
-python train.py --experiment dkvb_all_sets
-python predict.py --experiment dkvb_all_sets
+python train.py --experiment dkvb_scenario_1
+python evaluate.py --experiment dkvb_scenario_1
 
-python train.py --experiment vq_all_sets_64
-python predict.py --experiment vq_all_sets_64
+python train.py --experiment vq_scenario_1_64
+python evaluate.py --experiment vq_scenario_1_64
 
-python train.py --experiment dkvb_all_sets_64
-python predict.py --experiment dkvb_all_sets_64
+python train.py --experiment dkvb_scenario_1_64
+python evaluate.py --experiment dkvb_scenario_1_64
 
-python train.py --experiment vq_all_sets_128
-python predict.py --experiment vq_all_sets_128
+python train.py --experiment vq_scenario_1_128
+python evaluate.py --experiment vq_scenario_1_128
 
-python train.py --experiment dkvb_all_sets_128
-python predict.py --experiment dkvb_all_sets_128
+python train.py --experiment dkvb_scenario_1_128
+python evaluate.py --experiment dkvb_scenario_1_128
 
-python train.py --experiment vq_all_sets_512
-python predict.py --experiment vq_all_sets_512
+python train.py --experiment vq_scenario_1_512
+python evaluate.py --experiment vq_scenario_1_512
 
-python train.py --experiment dkvb_all_sets_512
-python predict.py --experiment dkvb_all_sets_512
+python train.py --experiment dkvb_scenario_1_512
+python evaluate.py --experiment dkvb_scenario_1_512
+
+
+@REM #################################################################
+@REM ################            SCENARIO 4              #############
+@REM #################################################################
+
+@REM python train.py --experiment baseline_scenario_4
+@REM python evaluate.py --experiment baseline_scenario_4
+
+@REM python train.py --experiment vq_scenario_4
+@REM python evaluate.py --experiment vq_scenario_4
+
+@REM python train.py --experiment dkvb_scenario_4
+@REM python evaluate.py --experiment dkvb_scenario_4
+
+@REM python train.py --experiment vq_scenario_4_64
+@REM python evaluate.py --experiment vq_scenario_4_64
+
+@REM python train.py --experiment dkvb_scenario_4_64
+@REM python evaluate.py --experiment dkvb_scenario_4_64
+
+@REM python train.py --experiment vq_scenario_4_128
+@REM python evaluate.py --experiment vq_scenario_4_128
+
+@REM python train.py --experiment dkvb_scenario_4_128
+@REM python evaluate.py --experiment dkvb_scenario_4_128
+
+@REM python train.py --experiment vq_scenario_4_512
+@REM python evaluate.py --experiment vq_scenario_4_512
+
+@REM python train.py --experiment dkvb_scenario_4_512
+@REM python evaluate.py --experiment dkvb_scenario_4_512

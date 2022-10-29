@@ -10,7 +10,7 @@ class UNet(nn.Module):
         hidden_dims_encoder: List[int],
         hidden_dims_decoder: List[int],
         n_channels: int = 3,
-        bilinear: bool = False,
+        bilinear: bool = True,
         **kwargs
     ):
         super(UNet, self).__init__()

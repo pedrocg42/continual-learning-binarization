@@ -13,6 +13,21 @@ from torchvision import transforms
 
 import config
 
+## DATASETS
+#   TEXT:
+#       - PHI: a collection of scanned images of Persian manuscripts from the
+#           Persian Heritage Image Binarization Competition.
+#       - Dibco: set of images of handwritten Latin text documentsfrom the
+#           Document Image Binarization Contest, annually held from 2009. We
+#           combined the collectionsfrom 2009 to 2016 as a single corpus for
+#           our experiments.
+#       - Palm: ICFHR 2016 Binarization of Palm Leaf Manuscript Images challenge.
+#   MUSIC:
+#       - Salzinnes: high-resolution images of scanned documents that contains
+#           lyrics and music scores in neumatic notation.
+#       - Einsieldeln: high-resolution images of scanned documents that contains
+#           lyrics and music scores in neumatic notation.
+
 
 class BinDataset(Dataset):
 
@@ -121,48 +136,55 @@ class BinDataset(Dataset):
         self.batch_size = batch_size
         self.steps_per_epoch = steps_per_epoch
 
+        np.random.seed(seed)
+
         if isinstance(self.datasets, str) and datasets == "all":
             self.datasets = BinDataset.databases_paths.keys()
 
-        # Extractin input and ground truth images
+        # Extractin input and ground truth images for the split
         self.images_paths = []
         self.gt_paths = []
         for database_name in self.datasets:
+            # loading all sets then making our own split
+            temp_images_paths = []
+            temp_gt_paths = []
             for temp_split in ["train", "test"]:
                 database_dict = BinDataset.databases_paths[database_name][temp_split]
                 for folder_path in database_dict["GR"]:
-                    # loading all sets then making our own split
-                    self.images_paths += glob.glob(
+
+                    temp_images_paths += glob.glob(
                         os.path.join(config.dataset_path, database_name, temp_split, folder_path, "*.png")
                     )
                 for folder_path in database_dict["GT"]:
-                    self.gt_paths += glob.glob(
+                    temp_gt_paths += glob.glob(
                         os.path.join(config.dataset_path, database_name, temp_split, folder_path, "*.png")
                     )
 
-        # Shufflind paths to create splits
-        self.images_paths = np.array(self.images_paths)
-        self.gt_paths = np.array(self.gt_paths)
+            # Shufflind paths to create splits
+            index = np.arange(len(temp_images_paths))
+            np.random.shuffle(index)
 
-        np.random.seed(seed)
-        index = np.arange(len(self.images_paths))
-        np.random.shuffle(index)
+            temp_images_paths = np.array(temp_images_paths)[index]
+            temp_gt_paths = np.array(temp_gt_paths)[index]
 
-        self.images_paths = self.images_paths[index]
-        self.gt_paths = self.gt_paths[index]
+            # Creating split for each dataset
+            idx1 = int(len(temp_images_paths) * self.train_val_test_split[0])
+            idx2 = idx1 + int(len(temp_images_paths) * self.train_val_test_split[1])
+            if self.split == "train":
+                temp_images_paths = temp_images_paths[:idx1]
+                temp_gt_paths = temp_gt_paths[:idx1]
+            elif self.split == "val":
+                temp_images_paths = temp_images_paths[idx1:idx2]
+                temp_gt_paths = temp_gt_paths[idx1:idx2]
+            elif self.split == "test":
+                temp_images_paths = temp_images_paths[idx2:]
+                temp_gt_paths = temp_gt_paths[idx2:]
 
-        # Creating split
-        idx1 = int(len(self.images_paths) * self.train_val_test_split[0])
-        idx2 = idx1 + int(len(self.images_paths) * self.train_val_test_split[1])
-        if self.split == "train":
-            self.images_paths = self.images_paths[:idx1]
-            self.gt_paths = self.gt_paths[:idx1]
-        elif self.split == "val":
-            self.images_paths = self.images_paths[idx1:idx2]
-            self.gt_paths = self.gt_paths[idx1:idx2]
-        else:
-            self.images_paths = self.images_paths[idx2:]
-            self.gt_paths = self.gt_paths[idx2:]
+            self.images_paths.append(temp_images_paths)
+            self.gt_paths.append(temp_gt_paths)
+
+        self.images_paths = np.concatenate(self.images_paths)
+        self.gt_paths = np.concatenate(self.gt_paths)
 
         self.num_images = len(self.images_paths)
 

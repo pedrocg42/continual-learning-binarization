@@ -1,25 +1,22 @@
+import csv
 import os
-from this import d
 from typing import List, Tuple, Union
 
-import numpy as np
 import fire
+import numpy as np
 import torch
-from torch import nn
 from torch.utils.data import DataLoader, Dataset
-from torch.utils.tensorboard import SummaryWriter
-from torchmetrics import F1Score, MeanSquaredError
-from tqdm import tqdm
-import csv
 
 import config
+from my_utils.evaluate import evaluate_dataset_patchwise
 from utils_experiments import parse_experiment
 
 DEVICE = "cuda"
+ALL_DATASETS = [["PHI"], ["Salzinnes"], ["Dibco"], ["Einsieldeln"]]  # ["Palm"]
 
 
 @parse_experiment
-def train(
+def evaluate(
     architecture,
     dataset: Dataset,
     datasets: Union[List[str], str],
@@ -28,6 +25,7 @@ def train(
     batch_size: int,
     steps_per_epoch: int,
     device: str = DEVICE,
+    all_datasets: List[str] = ALL_DATASETS,
     **experiment,
 ):
 
@@ -40,129 +38,91 @@ def train(
     print(model)
     print(f"Encoder total parameters: {sum(param.numel() for param in model.parameters())}")
 
-    model_file_path = os.path.join(config.models_path, f"{experiment['name']}.pt")
-    print(f" > Loading model from {model_file_path}")
-    model.load_state_dict(torch.load(model_file_path))
+    # Laoding different models from an experiment
+    model_results = {}
+    for i, dataset_group in enumerate(datasets):
 
-    # Preparing testing dataset
-    print(" > Creating Validation Dataset")
-    test_dataset = dataset(
-        datasets=datasets,
-        train_val_test_split=train_val_test_split,
-        split="test",
-        crop_size=crop_size,
-        batch_size=batch_size,
-        steps_per_epoch=steps_per_epoch,
-    )
-    test_dataloader = DataLoader(
-        dataset=test_dataset,
-        batch_size=batch_size,
-        num_workers=4,
-        pin_memory=True,
-    )
+        if i == 0:
+            model_name = experiment["name"]
+        model_name = model_name + f"__{'_'.join(dataset_group)}"
+        # model_name = experiment["name"]
+        model_results[model_name] = {}
 
-    # Initializing metrics
-    f1 = F1Score(num_classes=1)
-    mse = MeanSquaredError()
+        model_file_path = os.path.join(config.models_path, f"{model_name}.pt")
+        print(f" > Loading model from {model_file_path}")
+        model.load_state_dict(torch.load(model_file_path))
 
-    model.eval()
+        # Extracting results for all the datasets
 
-    # Calculating number of patches per image
-    num_patches = [
-        np.ceil(height / crop_size[0]).astype(int) * np.ceil(width / crop_size[1]).astype(int)
-        for width, height in test_dataset.images_sizes
-    ]
+        for dataset_name in all_datasets:
 
-    with torch.no_grad():
-        # Epoch training
-        mses = []
-        f1s = []
-        image_index = 0
-        label_queue_patches = torch.empty((0, 1, *crop_size))
-        output_queue_patches = torch.empty((0, 1, *crop_size))
-        pbar = tqdm(test_dataloader)
+            model_results[model_name][dataset_name[0]] = {}
 
-        for i, batch in enumerate(pbar):
+            # Preparing testing dataset
+            print(" > Creating Testing Dataset")
+            test_dataset = dataset(
+                datasets=dataset_name,
+                train_val_test_split=train_val_test_split,
+                split="test",
+                crop_size=crop_size,
+                batch_size=batch_size,
+                steps_per_epoch=steps_per_epoch,
+            )
+            test_dataloader = DataLoader(
+                dataset=test_dataset,
+                batch_size=batch_size,
+                num_workers=4,
+                pin_memory=True,
+            )
 
-            images, labels = batch
+            model.eval()
 
-            images = images.to(device)
-            labels = labels.to(device)
+            mse, f1 = evaluate_dataset_patchwise(
+                model=model, dataset=test_dataset, data_loader=test_dataloader, crop_size=crop_size, device=device
+            )
 
-            # Inference
-            output = model(images)
+            model_results[model_name][dataset_name[0]]["mse"] = mse
+            model_results[model_name][dataset_name[0]]["f1"] = f1
 
-            # Concatenatig new patches to queue
-            label_queue_patches = torch.cat((label_queue_patches, labels.cpu()))
-            output_queue_patches = torch.cat((output_queue_patches, output.cpu()))
+        # Extracting metrics
+        print(f" > Saving metrics...")
+        csv_path = "results.csv"
+        csv_existed = os.path.exists(csv_path)
 
-            # Checking if there's enough patches to form an image
-            if label_queue_patches.shape[0] >= num_patches[image_index]:
-                # Ensambling as many images as the patches extracted allow us
-                while label_queue_patches.shape[0] >= num_patches[image_index]:
+        f = open(csv_path, "a")
+        csv_writer = csv.writer(f, delimiter="\t")
 
-                    width, height = test_dataset.images_sizes[image_index]
+        if not csv_existed:
+            # Creating header
+            header = ["Experiment", "F1-Score", "MSE"]
+            header_f1 = []
+            header_mse = []
+            for dataset_name in all_datasets:
+                header_f1.append(f"F1 {dataset_name[0]}")
+                header_mse.append(f"MSE {dataset_name[0]}")
+            header += header_f1 + header_mse
 
-                    output_image = torch.zeros((1, height, width), dtype=torch.float32)
-                    label_image = torch.zeros((1, height, width), dtype=torch.float32)
+            # Writing header
+            csv_writer.writerow(header)
 
-                    # Calculating necessary patches
-                    num_patches_height = np.ceil(height / crop_size[0]).astype(int)
-                    num_patches_width = np.ceil(width / crop_size[1]).astype(int)
+        # Writing results for every model and for each dataset
+        # for model_name in model_results.keys():
+        row_results_f1 = []
+        row_results_mse = []
+        for dataset_name in model_results[model_name].keys():
+            row_results_f1.append(model_results[model_name][dataset_name]["f1"])
+            row_results_mse.append(model_results[model_name][dataset_name]["mse"])
 
-                    k = 0
-                    for i in range(num_patches_height):
-                        for j in range(num_patches_width):
+        row_results = [model_name, np.mean(row_results_f1), np.mean(row_results_mse)] + row_results_f1 + row_results_mse
+        csv_writer.writerow(row_results)
 
-                            top = i * crop_size[0]
-                            left = j * crop_size[1]
+        print(f" > Results saved in {csv_path}")
 
-                            # Avoiding the patch to be outside the image
-                            if top + crop_size[0] >= height:
-                                top = height - crop_size[0]
-                            if left + crop_size[1] >= width:
-                                left = width - crop_size[1]
-
-                            output_image[
-                                :, top : top + crop_size[0], left : left + crop_size[1]
-                            ] = output_queue_patches[k]
-                            label_image[:, top : top + crop_size[0], left : left + crop_size[1]] = label_queue_patches[
-                                k
-                            ]
-                            k += 1
-
-                    # Deleting used patches
-                    label_queue_patches = label_queue_patches[k:]
-                    output_queue_patches = output_queue_patches[k:]
-
-                    # Extracting metrics
-                    mses.append(mse(output_image, label_image))
-                    f1s.append(f1(output_image.flatten(), label_image.flatten().type(torch.int32)))
-
-    # Extracting metrics
-    print(f" > Saving metrics...")
-    csv_path = "results.csv"
-    existed = os.path.exists(csv_path)
-
-    f = open(csv_path, "a")
-    csv_writer = csv.writer(f, delimiter="\t")
-
-    if not existed:
-        # Creating and writing header
-        header = ["Experiment", "MSE", "F1 Score"]
-        csv_writer.writerow(header)
-
-    # Evaluating overall and for every single class
-    row_results = [experiment["name"], np.mean(mses), np.mean(f1s)]
-
-    csv_writer.writerow(row_results)
-    print(f" > Results saved in {csv_path}")
-
-    # Close file
-    f.close()
+        # Close file
+        f.close()
 
     print("End")
 
 
 if __name__ == "__main__":
-    fire.Fire(train)
+    fire.Fire(evaluate)

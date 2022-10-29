@@ -13,7 +13,7 @@
             "justMyCode": true,
             "args": [
                 "--experiment",
-                "dkvb_all_sets"
+                "dkvb_scenario_1"
             ]
         },
         {
@@ -25,7 +25,7 @@
             "justMyCode": true,
             "args": [
                 "--experiment",
-                "unet_all_sets"
+                "baseline_scenario_1"
             ]
         }
     ]

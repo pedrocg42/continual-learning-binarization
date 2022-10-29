@@ -6,7 +6,7 @@ import torch.nn as nn
 from discrete_key_value_bottleneck_pytorch import DiscreteKeyValueBottleneck
 from copy import deepcopy
 
-from networks.layers import DoubleConv, Down, OutConv, UpSimple
+from networks.layers import OutConv, UpSimple
 import config
 
 
