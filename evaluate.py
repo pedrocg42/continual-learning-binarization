@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 
 import config
 from my_utils.evaluate import evaluate_dataset_patchwise
-from utils_experiments import parse_experiment
+from my_utils.parse_experiment import parse_experiment
 
 DEVICE = "cuda"
 ALL_DATASETS = [["PHI"], ["Salzinnes"], ["Dibco"], ["Einsieldeln"]]  # ["Palm"]

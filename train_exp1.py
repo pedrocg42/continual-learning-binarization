@@ -11,7 +11,7 @@ from torchmetrics import F1Score
 from tqdm import tqdm
 
 import config
-from utils_experiments import parse_experiment
+from my_utils.parse_experiment import parse_experiment
 
 DEVICE = "cuda"
 
