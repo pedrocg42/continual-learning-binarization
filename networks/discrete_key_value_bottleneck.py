@@ -70,13 +70,13 @@ class DKVBBin(nn.Module):
                 dim=self.embedding_dim,  # input dimension
                 codebook_dim=self.embedding_dim // self.num_codebooks,
                 num_memory_codebooks=self.num_codebooks,  # number of memory codebook
-                num_memories=self.codebook_size // self.num_codebooks,  # number of memories
+                num_memories=self.codebook_size,  # number of memories
                 dim_memory=self.embedding_dim // self.num_codebooks,  # dimension of the output memories
                 decay=self.vq_decay,  # the exponential moving average decay, lower means the keys will change faster
                 threshold_ema_dead_code=self.threshold_ema_dead_code,  # (0.8·batch-size·h·w·mz/num-pairs)
             )
 
-        elif self.architecture_type == "vector_quantized":
+        elif self.architecture_type == "vector_quantizer":
             self.vector_quantizer = VectorQuantize(
                 dim=self.embedding_dim,
                 codebook_dim=self.embedding_dim // self.num_codebooks,
@@ -111,7 +111,7 @@ class DKVBBin(nn.Module):
         else:
             embeddings = self.encoder(x)
 
-        if self.architecture_type == "discrete_key_value_bottleneck" or self.architecture_type == "vector_quantized":
+        if self.architecture_type == "discrete_key_value_bottleneck" or self.architecture_type == "vector_quantizer":
 
             encoder_output_size = embeddings.shape[-1]
             batch_size = x.size()[0]
@@ -122,7 +122,7 @@ class DKVBBin(nn.Module):
             embeddings = torch.permute(embeddings, (0, 2, 1))
 
             if self.architecture_type == "discrete_key_value_bottleneck":
-                memories = self.key_value_bottleneck(embeddings)  # quantized, indices, commitment loss
+                memories = self.key_value_bottleneck(embeddings)
             else:
                 memories, _, _ = self.vector_quantizer(embeddings)  # quantized, indices, commitment loss
 
