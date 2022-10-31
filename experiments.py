@@ -44,11 +44,12 @@ baseline_scenario_1 = {
     # Training
     "criteria": MSELoss,
     "optimizer": Adam,
-    "learning_rate": 1e-4,
+    "learning_rate": 3e-4,
     "num_epochs": 1000,
     "batch_size": 32,
     "steps_per_epoch": 50,
     "patience": 10,
+    "patience_learning_rate": 5,
 }
 
 # Baselines Vector Quantizer Experiments
@@ -56,11 +57,12 @@ vq_scenario_1 = baseline_scenario_1.copy()
 vq_scenario_1.update(
     {
         "name": "vq_scenario_1",
-        "architecture_type": "vector_quantized",
+        "architecture_type": "vector_quantizer",
         "codebook_size": 8192,
         "num_codebooks": 1,
         "vq_decay": 0.99,
         "threshold_ema_dead_code": 10,
+        "num_epochs_initialization_keys": 10,
     }
 )
 
@@ -149,11 +151,12 @@ vq_scenario_4 = baseline_scenario_4.copy()
 vq_scenario_4.update(
     {
         "name": "vq_scenario_4",
-        "architecture_type": "vector_quantized",
+        "architecture_type": "vector_quantizer",
         "codebook_size": 8192,
         "num_codebooks": 1,
         "vq_decay": 0.99,
         "threshold_ema_dead_code": 10,
+        "num_epochs_initialization_keys": 10,
     }
 )
 
