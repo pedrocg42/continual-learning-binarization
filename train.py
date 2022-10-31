@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 import config
 from my_utils.evaluate import evaluate_dataset_patchwise
-from utils_experiments import parse_experiment
+from my_utils.parse_experiment import parse_experiment
 
 DEVICE = "cuda"
 
@@ -32,64 +32,47 @@ def train(
     batch_size: int,
     steps_per_epoch: int,
     patience: int,
+    patience_learning_rate: int,
     num_epochs_initialization_keys: int = None,
     device: str = DEVICE,
-    force_train: bool = False,
+    force_train: bool = True,
     **experiment,
 ):
 
     print(f"Training experiment: {experiment['name']}")
 
     # Building the model
-    print(" > Loading model:")
+    print(" > Building model")
     model = architecture(**experiment)
     model.to(device)
     print(model)
-    print(f"Encoder total parameters: {sum(param.numel() for param in model.parameters())}")
+    print(f"\t > > Total parameters: {sum(param.numel() for param in model.parameters())}")
+
+    # Configure optimizer and loss function
+    optimizer = optimizer(model.parameters(), lr=learning_rate)
+    criteria = criteria()
 
     # Creating metric
     f1 = F1Score().to(device)
 
     for i_dataset, dataset_group in enumerate(datasets):
 
+        # Building model_name and model_path and checking if it already exists
         if i_dataset == 0:
             model_name = experiment["name"]
             model_name += f"__{'_'.join(dataset_group)}"
             model_file_path = os.path.join(config.models_path, f"{model_name}.pt")
-            last_model_file_path = model_file_path
         else:
             last_model_file_path = model_file_path
             model_name += f"__{'_'.join(dataset_group)}"
             model_file_path = os.path.join(config.models_path, f"{model_name}.pt")
 
+        print(f" > Training model {model_name}")
+
         # Checking of model already trained exists
         if os.path.exists(model_file_path) and not force_train:
+            print(f" > > Found model already trained. Jumping to next dataset...")
             continue
-        
-        print(f" > Training model {model_name}")
-        # Loading best model from last training if it is not the first one
-        if i_dataset > 0:
-            # Freezing decoder after training with the first set
-            if experiment["architecture_type"] == "discrete_key_value_bottleneck":
-                experiment["freeze_decoder"] = True
-                model = architecture(**experiment)
-                model.to(device)
-
-            print(f" > Loading model weights from {last_model_file_path}")
-            model.load_state_dict(torch.load(last_model_file_path))
-
-            # Configurating model to only train certaing parts of it
-            if experiment["architecture_type"] == "discrete_key_value_bottleneck":
-                # All model frozen but values
-                model.train(False)
-            elif experiment["architecture_type"] == "vector_quantized":
-                # Freezing Keys and encoder
-                model.train(False)
-                model.decoder.train(True)
-            elif experiment["architecture_type"] == "baseline":
-                # Freezing Keys and encoder
-                model.train(False)
-                model.decoder.train(True)
 
         # Preparing train dataset
         print(f" > Creating Training Dataset for {dataset_group}")
@@ -135,36 +118,44 @@ def train(
             images_show[i] = torch.unsqueeze(image, 0)
             labels_show[i] = torch.unsqueeze(label, 0)
 
-        # Configure optimizer and loss function
-        optimizer_ = optimizer(model.parameters(), lr=learning_rate)
-        criteria_ = criteria()
-
         # Initialiazing Tensorboard logging and adding model graph
         writer = SummaryWriter(log_dir=os.path.join(config.logs_path, model_name))
-        # writer.add_graph(model, torch.zeros((8, 3, 256, 256), dtype=torch.float32).to(device))
+        writer.add_graph(model, torch.zeros((batch_size, 3, *crop_size), dtype=torch.float32).to(device))
 
-        # Keys initialization for descrete key-value bottleneck
-        if i_dataset == 0 and experiment["architecture_type"] == "discrete_key_value_bottleneck":
-            print("[PHASE-0] Keys Initialization:")
+        # Initialization of keys
+        if i_dataset == 0:
+            if experiment["architecture_type"] in ["discrete_key_value_bottleneck", "vector_quantizer"]:
+                print("[PHASE-0] Keys Initialization:")
 
-            model.train()
-            model.encoder.train(False)
+                # Keys initialization for descrete key-value bottleneck and vector quantizer
+                model.train()
+                model.encoder.train(False)
+                model.decoder.train(False)
 
-            # Start Training
-            with torch.no_grad():
-                for epoch in range(num_epochs_initialization_keys):
+                # Start training
+                with torch.no_grad():
+                    for epoch in range(num_epochs_initialization_keys):
 
-                    print(f" > Training epoch {epoch + 1} of {num_epochs_initialization_keys}")
+                        print(f" > Training epoch {epoch + 1} of {num_epochs_initialization_keys}")
 
-                    # Epoch training
-                    pbar = tqdm(train_dataloader)
-                    for step, batch in enumerate(pbar):
+                        # Epoch training
+                        pbar = tqdm(train_dataloader)
+                        for step, batch in enumerate(pbar):
 
-                        images, labels = batch
-                        images = images.to(device)
+                            images, labels = batch
+                            images = images.to(device)
 
-                        # Inference
-                        output = model(images)
+                            # Inference
+                            output = model(images)
+        else:
+            # Loading best model from last training if it is not the first one
+            if experiment["architecture_type"] == "discrete_key_value_bottleneck":
+                # Freezing decoder after training with the first set
+                for param in model.decoder.parameters():
+                    param.requires_grad = False
+
+            print(f" > Loading model weights from {last_model_file_path}")
+            model.load_state_dict(torch.load(last_model_file_path))
 
         print("[PHASE-1] Training Model:")
         best_val_f1 = 0.0
@@ -175,10 +166,18 @@ def train(
 
             model.train()
 
-            if "dkvb" in experiment["name"]:
-                # Freezing encoder and keys
-                model.encoder.train(False)
-                model.key_value_bottleneck.vq.train(False)
+            # Configurating model to only train certaing parts of it
+            if experiment["architecture_type"] == "discrete_key_value_bottleneck":
+                # All model frozen but values
+                model.train(False)
+            elif experiment["architecture_type"] == "vector_quantizer":
+                # Freezing Keys and encoder
+                model.train(False)
+                model.decoder.train(True)
+            elif experiment["architecture_type"] == "baseline":
+                # Freezing encoder
+                model.train(False)
+                model.decoder.train(True)
 
             # Epoch training
             running_loss = 0.0
@@ -191,17 +190,17 @@ def train(
                 labels = labels.to(device)
 
                 # Zero gradient before every batch
-                optimizer_.zero_grad()
+                optimizer.zero_grad()
 
                 # Inference
                 output = model(images)
 
                 # Compute loss
-                loss = criteria_(output, labels)
+                loss = criteria(output, labels)
                 loss.backward()
 
                 # Adjust weights
-                optimizer_.step()
+                optimizer.step()
 
                 # Computing training mean loss and f1 score
                 running_loss += loss.item()
@@ -216,44 +215,49 @@ def train(
             writer.add_scalar("Train F1 Score", avg_f1, epoch)
 
             print(f" > Evaluating validation")
+            with torch.no_grad():
+                model.eval()
 
-            model.eval()
-
-            # Epoch validation
-            val_loss, val_f1 = evaluate_dataset_patchwise(
-                model=model, dataset=val_dataset, data_loader=val_dataloader, crop_size=crop_size, device=device
-            )
-
-            # Adding logs for every epoch
-            writer.add_scalar("Validation Loss", avg_loss, epoch)
-            writer.add_scalar("Validation F1 Score", val_f1, epoch)
-
-            if val_f1 > best_val_f1:
-                best_val_f1 = val_f1
-                patience_iterations = 0
-
-                torch.save(model.state_dict(), model_file_path)
-
-                print(f" > New best model found with best validation loss {val_loss} and F1-Score {val_f1}")
-                print(f" > New best model saved in {model_file_path}")
-
-            else:
-                patience_iterations += 1
-                if patience_iterations >= patience:
-                    break
-
-            # Saving images to check progress
-            output_show = model(images_show.to(device))
-            grid = make_grid(
-                torch.cat(
-                    [
-                        images_show.detach().cpu()[:16],
-                        torch.tile(labels_show.detach().cpu()[:16], (1, 3, 1, 1)),
-                        torch.tile(output_show.detach().cpu()[:16], (1, 3, 1, 1)),
-                    ]
+                # Epoch validation
+                val_loss, val_f1 = evaluate_dataset_patchwise(
+                    model=model, dataset=val_dataset, data_loader=val_dataloader, crop_size=crop_size, device=device
                 )
-            )
-            writer.add_image(f"{model_name}/images_epoch_{epoch+1}", grid, epoch)
+
+                # Adding logs for every epoch
+                writer.add_scalar("Validation Loss", avg_loss, epoch)
+                writer.add_scalar("Validation F1 Score", val_f1, epoch)
+
+                # Saving images to check progress
+                output_show = model(images_show.to(device))
+                grid = make_grid(
+                    torch.cat(
+                        [
+                            images_show,
+                            torch.tile(labels_show, (1, 3, 1, 1)),  # Y -> RGB
+                            torch.tile(output_show.detach().cpu(), (1, 3, 1, 1)),  # Y -> RGB
+                        ]
+                    )
+                )
+                writer.add_image(f"{model_name}/images_epoch_{epoch+1}", grid, epoch)
+
+                # Evaluting epoch results
+                if val_f1 > best_val_f1:
+                    # Saving new best model and initialize variables
+                    best_val_f1 = val_f1
+                    patience_iterations = 0
+
+                    torch.save(model.state_dict(), model_file_path)
+
+                    print(f" > New best model found with best F1-Score {val_f1} ({val_loss=})  ")
+                    print(f" > New best model saved in {model_file_path}")
+
+                else:
+                    # Reducing learning rate and/or stopping the training
+                    patience_iterations += 1
+                    if (patience_iterations % patience_learning_rate) == 0:
+                        learning_rate /= 2.0
+                    if patience_iterations >= patience:
+                        break
 
         writer.close()
         print("End")
