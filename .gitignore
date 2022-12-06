@@ -3,3 +3,6 @@ __pycache__
 
 # Avoiding to upload heavy results
 results
+
+# Avoiding images
+*.png
