@@ -13,7 +13,7 @@
             "justMyCode": true,
             "args": [
                 "--experiment",
-                "dkvb_scenario_1"
+                "baseline_scenario_1"
             ]
         },
         {
