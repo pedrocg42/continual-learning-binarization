@@ -45,9 +45,9 @@ baseline_scenario_1 = {
     "criteria": MSELoss,
     "optimizer": Adam,
     "learning_rate": 3e-4,
-    "num_epochs": 2,
-    "batch_size": 4,
-    "steps_per_epoch": 2,
+    "num_epochs": 400,
+    "batch_size": 32,
+    "steps_per_epoch": 50,
     "patience": 25,
     "patience_learning_rate": 5,
 }
