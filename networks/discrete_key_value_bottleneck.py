@@ -136,6 +136,6 @@ class DKVBBin(nn.Module):
             return self.decoder(memories)
 
         elif self.architecture_type == "baseline":  # baseline classifier
-            output = self.decoder(torch.squeeze(embeddings))
+            output = self.decoder(embeddings)
 
         return output
