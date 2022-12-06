@@ -6,3 +6,6 @@ results
 
 # Avoiding images
 *.png
+
+# Avoiding data files
+*.zip
