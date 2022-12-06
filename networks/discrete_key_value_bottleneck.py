@@ -116,22 +116,21 @@ class DKVBBin(nn.Module):
             encoder_output_size = embeddings.shape[-1]
             batch_size = x.size()[0]
 
-            # B, Dim, H, W -> B, Dim, N
-            embeddings = torch.reshape(embeddings, (embeddings.shape[0], self.embedding_dim, encoder_output_size**2))
-            # B, Dim, N -> B, N, Dim
-            embeddings = torch.permute(embeddings, (0, 2, 1))
+            embeddings = torch.reshape(
+                embeddings, (embeddings.shape[0], self.embedding_dim, encoder_output_size**2)
+            )  # B, Dim, H, W -> B, Dim, N
+            embeddings = torch.permute(embeddings, (0, 2, 1))  # B, Dim, N -> B, N, Dim
 
             if self.architecture_type == "discrete_key_value_bottleneck":
                 memories = self.key_value_bottleneck(embeddings)
             else:
                 memories, _, _ = self.vector_quantizer(embeddings)  # quantized, indices, commitment loss
 
-            # B, N, Dim -> B, Dim, N
-            memories = torch.permute(memories, (0, 2, 1))
-            # B, Dim, N -> B, Dim, H, W
+            memories = torch.permute(memories, (0, 2, 1))  # B, N, Dim -> B, Dim, N
             memories = torch.reshape(
                 memories, (batch_size, self.embedding_dim, encoder_output_size, encoder_output_size)
-            )
+            )  # B, Dim, N -> B, Dim, H, W
+
             # Processing final output
             return self.decoder(memories)
 
