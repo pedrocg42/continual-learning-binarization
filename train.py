@@ -53,8 +53,8 @@ def train(
         print(f"> > Total parameters: {sum(param.numel() for param in model.parameters())}")
 
         # Configure optimizer and loss function
-        optimizer = optimizer(model.parameters(), lr=learning_rate)
-        criteria = criteria()
+        optimizer_ = optimizer(model.parameters(), lr=learning_rate)
+        criteria_ = criteria()
 
         for i_dataset, dataset_group in enumerate(datasets):
 
@@ -192,17 +192,17 @@ def train(
                     labels = labels.to(config.device)
 
                     # Zero gradient before every batch
-                    optimizer.zero_grad()
+                    optimizer_.zero_grad()
 
                     # Inference
                     output = model(images)
 
                     # Compute loss
-                    loss = criteria(output, labels)
+                    loss = criteria_(output, labels)
                     loss.backward()
 
                     # Adjust weights
-                    optimizer.step()
+                    optimizer_.step()
 
                     # Computing training mean loss and f1 score
                     running_loss += loss.item()
