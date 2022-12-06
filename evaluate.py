@@ -64,19 +64,14 @@ def evaluate(
                     crop_size=crop_size,
                     batch_size=batch_size,
                     steps_per_epoch=steps_per_epoch,
-                )
-                test_dataloader = DataLoader(
-                    dataset=test_dataset,
-                    batch_size=1,
-                    num_workers=1,
-                    pin_memory=True,
+                    cross_val_id=i_cross_val,
                 )
 
                 model.eval()
 
                 mse, f1 = evaluate_dataset_patchwise(
                     model=model,
-                    data_loader=test_dataloader,
+                    dataset=test_dataset,
                     crop_size=crop_size,
                 )
 

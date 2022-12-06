@@ -14,7 +14,7 @@ from tqdm import tqdm
 @torch.no_grad()
 def evaluate_dataset_patchwise(
     model: nn.Module,
-    data_loader: DataLoader,
+    dataset: DataLoader,
     crop_size: Tuple[int] = (256, 256),
     batch_size: int = 32,
 ):
@@ -23,7 +23,7 @@ def evaluate_dataset_patchwise(
     f1 = F1Score(num_classes=1, task="binary")
     mse = MeanSquaredError()
 
-    pbar = tqdm(data_loader)
+    pbar = tqdm(dataset)
 
     tp = 0
     fp = 0
@@ -32,8 +32,8 @@ def evaluate_dataset_patchwise(
     num_pixels = 0
     for i, (patches, label) in enumerate(pbar):
 
-        patches = patches[0].to(config.device)
-        label = label[0]
+        patches = patches.to(config.device)
+        label = label
 
         output_list = []
         for j in range(0, len(patches), batch_size):
