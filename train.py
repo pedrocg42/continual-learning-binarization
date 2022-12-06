@@ -104,12 +104,6 @@ def train(
                 steps_per_epoch=steps_per_epoch,
                 cross_val_id=i_cross_val,
             )
-            val_dataloader = DataLoader(
-                dataset=val_dataset,
-                batch_size=1,
-                num_workers=1,
-                pin_memory=True,
-            )
 
             # Initialiazing Tensorboard logging and adding model graph
             print(" > Creating TensorBoard writer and adding graph")
@@ -226,7 +220,7 @@ def train(
                     # Epoch validation
                     val_loss, val_f1 = evaluate_dataset_patchwise(
                         model=model,
-                        data_loader=val_dataloader,
+                        dataset=val_dataset,
                         crop_size=crop_size,
                     )
 
