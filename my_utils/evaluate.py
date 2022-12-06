@@ -16,6 +16,7 @@ def evaluate_dataset_patchwise(
     model: nn.Module,
     data_loader: DataLoader,
     crop_size: Tuple[int] = (256, 256),
+    batch_size: int = 32,
 ):
 
     # Initializing metrics
@@ -34,8 +35,13 @@ def evaluate_dataset_patchwise(
         patches = patches[0].to(config.device)
         label = label[0]
 
-        # Inference
-        output_patches = model(patches)
+        output_list = []
+        for j in range(0, len(patches), batch_size):
+
+            # Inference
+            output_list.append(model(patches[j : j + batch_size]))
+
+        output_patches = torch.cat(output_list)
 
         height, width = label.shape[-2:]
 
@@ -72,8 +78,8 @@ def evaluate_dataset_patchwise(
     mse = mse.item() / num_pixels
 
     # Calculating F1-score
-    precision = tp / (tp + fp)
-    recall = tp / (tp + fn)
-    f1 = (2 * precision * recall) / (precision + recall)
+    precision = tp / (tp + fp + torch.finfo(torch.float32).eps)
+    recall = tp / (tp + fn + torch.finfo(torch.float32).eps)
+    f1 = (2 * precision * recall) / (precision + recall + torch.finfo(torch.float32).eps)
 
     return mse, f1
