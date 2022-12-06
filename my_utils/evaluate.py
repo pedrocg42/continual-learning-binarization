@@ -37,7 +37,6 @@ def evaluate_dataset_patchwise(
 
         output_list = []
         for j in range(0, len(patches), batch_size):
-
             # Inference
             output_list.append(model(patches[j : j + batch_size]))
 
