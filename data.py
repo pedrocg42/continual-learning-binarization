@@ -3,13 +3,13 @@ import os
 from re import S
 from typing import Tuple, Union, List
 
-import imagesize
+import cv2
 import numpy as np
 from PIL import Image
-import random
+import torch
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
-from torchvision import transforms
+from tqdm import tqdm
 
 import config
 
@@ -31,7 +31,7 @@ import config
 
 class BinDataset(Dataset):
 
-    databases_paths = {
+    datasets_paths = {
         "Dibco": {
             "train": {
                 "GR": [
@@ -126,7 +126,9 @@ class BinDataset(Dataset):
         crop_size: Tuple[int] = (256, 256),
         batch_size: int = 64,
         steps_per_epoch: int = 100,
-        seed: int = 42,
+        patches_per_image: int = 100,  # max 1000
+        cross_val_splits: int = config.cross_val_splits,
+        cross_val_id: int = 0,
     ):
 
         self.datasets = datasets
@@ -135,122 +137,117 @@ class BinDataset(Dataset):
         self.crop_size = crop_size
         self.batch_size = batch_size
         self.steps_per_epoch = steps_per_epoch
+        self.patches_per_image = patches_per_image
+        self.cross_val_splits = cross_val_splits
+        self.cross_val_id = cross_val_id
+        self.index = 0
 
-        np.random.seed(seed)
+        np.random.seed(config.seed)
 
         if isinstance(self.datasets, str) and datasets == "all":
-            self.datasets = BinDataset.databases_paths.keys()
+            self.datasets = BinDataset.datasets_paths.keys()
 
-        # Extractin input and ground truth images for the split
-        self.images_paths = []
+        # Extracting input and ground truth images
+        self.gr_paths = []
         self.gt_paths = []
-        for database_name in self.datasets:
-            # loading all sets then making our own split
-            temp_images_paths = []
-            temp_gt_paths = []
-            for temp_split in ["train", "test"]:
-                database_dict = BinDataset.databases_paths[database_name][temp_split]
-                for folder_path in database_dict["GR"]:
+        for dataset_name in self.datasets:
 
-                    temp_images_paths += glob.glob(
-                        os.path.join(config.dataset_path, database_name, temp_split, folder_path, "*.png")
-                    )
-                for folder_path in database_dict["GT"]:
-                    temp_gt_paths += glob.glob(
-                        os.path.join(config.dataset_path, database_name, temp_split, folder_path, "*.png")
-                    )
+            dataset_folder = os.path.join(config.dataset_path, dataset_name)
+
+            gr_images_paths = [
+                path
+                for path in glob.glob(os.path.join(dataset_folder, "**", "*GR", "*.png"), recursive=True)
+                if "aug" not in path
+            ]
+            gt_images_paths = [
+                path
+                for path in glob.glob(os.path.join(dataset_folder, "**", "*GT", "*.png"), recursive=True)
+                if "aug" not in path
+            ]
 
             # Shufflind paths to create splits
-            index = np.arange(len(temp_images_paths))
+            index = np.arange(len(gr_images_paths))
             np.random.shuffle(index)
 
-            temp_images_paths = np.array(temp_images_paths)[index]
-            temp_gt_paths = np.array(temp_gt_paths)[index]
+            gr_images_paths = np.array(gr_images_paths)[index]
+            gt_images_paths = np.array(gt_images_paths)[index]
 
-            # Creating split for each dataset
-            idx1 = int(len(temp_images_paths) * self.train_val_test_split[0])
-            idx2 = idx1 + int(len(temp_images_paths) * self.train_val_test_split[1])
+            # Creating cross-val chunks
+            chunk_size = len(gr_images_paths) / config.cross_val_splits
+            gr_paths_chunks = [
+                gr_images_paths[int(i * chunk_size) : int((i + 1) * chunk_size)] for i in range(config.cross_val_splits)
+            ]
+            gt_paths_chunks = [
+                gt_images_paths[int(i * chunk_size) : int((i + 1) * chunk_size)] for i in range(config.cross_val_splits)
+            ]
+
+            test_set_images = gr_paths_chunks.pop(self.cross_val_id)
+            val_set_images = gr_paths_chunks.pop(-1)
+            train_set_images = np.concatenate(gr_paths_chunks)
             if self.split == "train":
-                temp_images_paths = temp_images_paths[:idx1]
-                temp_gt_paths = temp_gt_paths[:idx1]
+                gr_images_paths = train_set_images
             elif self.split == "val":
-                temp_images_paths = temp_images_paths[idx1:idx2]
-                temp_gt_paths = temp_gt_paths[idx1:idx2]
+                gr_images_paths = val_set_images
             elif self.split == "test":
-                temp_images_paths = temp_images_paths[idx2:]
-                temp_gt_paths = temp_gt_paths[idx2:]
+                gr_images_paths = test_set_images
 
-            self.images_paths.append(temp_images_paths)
-            self.gt_paths.append(temp_gt_paths)
+            test_set_images = gt_paths_chunks.pop(self.cross_val_id)
+            val_set_images = gt_paths_chunks.pop(-1)
+            train_set_images = np.concatenate(gt_paths_chunks)
+            if self.split == "train":
+                gt_images_paths = train_set_images
+            elif self.split == "val":
+                gt_images_paths = val_set_images
+            elif self.split == "test":
+                gt_images_paths = test_set_images
 
-        self.images_paths = np.concatenate(self.images_paths)
-        self.gt_paths = np.concatenate(self.gt_paths)
+            if self.split == "train":
+                # Loading patches from images paths
+                dataset_folder = os.path.join(dataset_folder, "patches")
 
-        self.num_images = len(self.images_paths)
+                if not os.path.isdir(dataset_folder):
+                    self.generate_dataset_patches(dataset_name)
 
-        # For evaluation we need to evaluate all the image
-        self.images_sizes = []
-        if self.split == "val" or self.split == "test":
-            self.patches = []
-            temp_images_list = []
-            temp_gt_list = []
-            for image_path, gt_path in zip(self.images_paths, self.gt_paths):
-                self.images_sizes.append(imagesize.get(image_path))
-                width, height = self.images_sizes[-1]
+                # Loading all patches
+                gr_images_names = [os.path.basename(path).split(".")[0] for path in gr_images_paths]
+                for i, path in enumerate(
+                    glob.glob(os.path.join(dataset_folder, "**", "*GR", "**", "*.png"), recursive=True)
+                ):
+                    if (
+                        int(os.path.basename(path).split(".")[0]) <= self.patches_per_image
+                        and os.path.basename(os.path.dirname(path)) in gr_images_names
+                    ):
+                        self.gr_paths.append(path)
 
-                # Calculating necessary patches
-                num_patches_height = np.ceil(height / crop_size[0]).astype(int)
-                num_patches_width = np.ceil(width / crop_size[1]).astype(int)
+                gt_images_names = [os.path.basename(path).split(".")[0] for path in gt_images_paths]
+                for i, path in enumerate(
+                    glob.glob(os.path.join(dataset_folder, "**", "*GT", "**", "*.png"), recursive=True)
+                ):
+                    if (
+                        int(os.path.basename(path).split(".")[0]) <= self.patches_per_image
+                        and os.path.basename(os.path.dirname(path)) in gt_images_names
+                    ):
+                        self.gt_paths.append(path)
 
-                for i in range(num_patches_height):
-                    for j in range(num_patches_width):
+            elif self.split == "val" or self.split == "test":
+                self.gr_paths += list(gr_images_paths)
+                self.gt_paths += list(gt_images_paths)
 
-                        top = i * crop_size[0]
-                        left = j * crop_size[1]
+        if self.split == "train":
+            # Shufflind paths to create splits
+            index = np.arange(len(self.gr_paths))
+            np.random.shuffle(index)
 
-                        # Avoiding the patch to be outside the image
-                        if top + self.crop_size[0] >= height:
-                            top = height - self.crop_size[0]
-                        if left + self.crop_size[1] >= width:
-                            left = width - self.crop_size[1]
+            self.gr_paths = np.array(self.gr_paths)[index]
+            self.gt_paths = np.array(self.gt_paths)[index]
 
-                        temp_images_list.append(image_path)
-                        temp_gt_list.append(gt_path)
-                        self.patches.append((top, left, *self.crop_size))
+        elif self.split == "val" or self.split == "test":
+            self.gr_paths = np.array(self.gr_paths)
+            self.gt_paths = np.array(self.gt_paths)
 
-            self.images_paths = temp_images_list
-            self.gt_paths = temp_gt_list
-
-        self.num_patches = len(self.images_paths)
+        self.num_images = len(self.gr_paths)
 
     def transform(self, image, mask):
-
-        # Random crop
-        top, left, h, w = transforms.RandomCrop.get_params(image, output_size=self.crop_size)
-        image = TF.crop(image, top, left, h, w)
-        mask = TF.crop(mask, top, left, h, w)
-
-        # Random horizontal flipping
-        if random.random() > 0.5:
-            image = TF.hflip(image)
-            mask = TF.hflip(mask)
-
-        # Random vertical flipping
-        if random.random() > 0.5:
-            image = TF.vflip(image)
-            mask = TF.vflip(mask)
-
-        # Transform to tensor
-        image = TF.to_tensor(image)
-        mask = TF.to_tensor(mask)
-
-        return image, mask
-
-    def transform_eval(self, image: Image.Image, mask: Image.Image, patch: Tuple):
-
-        # Crop image and ground truth
-        image = TF.crop(image, *patch)
-        mask = TF.crop(mask, *patch)
 
         # Transform to tensor
         image = TF.to_tensor(image)
@@ -262,21 +259,111 @@ class BinDataset(Dataset):
         if self.split == "train":
             return self.batch_size * self.steps_per_epoch
         else:
-            return self.num_patches
+            return self.num_images
 
     def __getitem__(self, index):
 
-        if self.split == "train":
-            circular_index = index % self.num_images
-            x, y = self.transform(
-                Image.open(self.images_paths[circular_index]).convert("RGB"),
-                Image.open(self.gt_paths[circular_index]).convert("L"),  # only luminance (one_channel)
-            )
-        else:
-            x, y = self.transform_eval(
-                Image.open(self.images_paths[index]).convert("RGB"),
-                Image.open(self.gt_paths[index]).convert("L"),  # only luminance (one_channel)
-                self.patches[index],
-            )
+        self.index += 1
+        self.index %= self.num_images
 
-        return x, y
+        if self.split == "train":
+            x, y = self.transform(
+                Image.open(self.gr_paths[self.index]).convert("RGB"),
+                Image.open(self.gt_paths[self.index]).convert("L"),  # only luminance (one_channel)
+            )
+            return x, y
+        else:
+            patches = self.__extract_all_evaluation_patches(np.asarray(Image.open(self.gr_paths[index]).convert("RGB")))
+
+            patches = self.__normalize_image(patches)
+            label = TF.to_tensor(Image.open(self.gt_paths[index]).convert("L"))
+
+            return patches, label
+
+    def generate_dataset_patches(self, dataset_name: str, num_patches: int = 1000):
+
+        print(f"Creating patches for dataset {dataset_name}")
+
+        # Creating folder for patches
+        dataset_folder = os.path.join(config.dataset_path, dataset_name)
+        dataset_patches_folder = os.path.join(dataset_folder, "patches")
+        os.makedirs(dataset_patches_folder, exist_ok=True)
+
+        # Finding all the images in the dataset
+        gr_paths = [
+            path
+            for path in glob.glob(os.path.join(dataset_folder, "**", "*GR", "*.png"), recursive=True)
+            if "aug" not in path
+        ]
+        gt_paths = [
+            path
+            for path in glob.glob(os.path.join(dataset_folder, "**", "*GT", "*.png"), recursive=True)
+            if "aug" not in path
+        ]
+
+        print(f" > Creating patches for {len(gr_paths)} images found")
+        for gr_path, gt_path in tqdm(zip(gr_paths, gt_paths)):
+
+            gr_image = cv2.imread(gr_path)
+            gt_image = cv2.imread(gt_path)
+
+            if os.path.basename(gr_path) != os.path.basename(gt_path):
+                raise ValueError("The name of the images should be the same")
+
+            if gr_image.shape[:2] != gt_image.shape[:2]:
+                raise ValueError("Images should be the same size")
+
+            height, width = gr_image.shape[:2]
+
+            rand_y = np.random.randint(low=0, high=height - self.crop_size[0], size=num_patches)
+            rand_x = np.random.randint(low=0, high=width - self.crop_size[1], size=num_patches)
+
+            # Creating image's patches' folder
+            gr_patches_folder = gr_path.replace(dataset_folder, dataset_patches_folder).split(".")[0]
+            gt_patches_folder = gt_path.replace(dataset_folder, dataset_patches_folder).split(".")[0]
+            os.makedirs(gr_patches_folder, exist_ok=True)
+            os.makedirs(gt_patches_folder, exist_ok=True)
+
+            for i, (y, x) in enumerate(zip(rand_y, rand_x)):
+
+                # Extracting patch
+                gr_patch = gr_image[y : y + self.crop_size[0], x : x + self.crop_size[1]]
+                gt_patch = gt_image[y : y + self.crop_size[0], x : x + self.crop_size[1]]
+
+                # Creating patches paths and saving them
+                gr_patch_path = os.path.join(gr_patches_folder, f"{(i+1):04d}.png")
+                gt_patch_path = os.path.join(gt_patches_folder, f"{(i+1):04d}.png")
+                cv2.imwrite(gr_patch_path, gr_patch)
+                cv2.imwrite(gt_patch_path, gt_patch)
+
+    def __extract_all_evaluation_patches(self, image: np.ndarray):
+        gr_patches = []
+
+        height, width = image.shape[:2]
+
+        pt_image = np.transpose(image, axes=[2, 0, 1])
+
+        # Calculating necessary patches
+        num_patches_height = np.ceil(height / self.crop_size[0]).astype(int)
+        num_patches_width = np.ceil(width / self.crop_size[1]).astype(int)
+
+        for i in range(num_patches_height):
+            for j in range(num_patches_width):
+
+                top = i * self.crop_size[0]
+                left = j * self.crop_size[1]
+
+                # Avoiding the patch to be outside the image
+                if top + self.crop_size[0] >= height:
+                    top = height - self.crop_size[0]
+                if left + self.crop_size[1] >= width:
+                    left = width - self.crop_size[1]
+
+                gr_patches.append(pt_image[:, top : top + self.crop_size[0], left : left + self.crop_size[1]])
+
+        gr_patches = torch.from_numpy(np.array(gr_patches, dtype=np.float32))
+
+        return gr_patches
+
+    def __normalize_image(self, image):
+        return (image / 127.5) - 1.0
