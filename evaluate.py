@@ -56,7 +56,7 @@ def evaluate(
                 model_results[model_name][dataset_name[0]] = {}
 
                 # Preparing testing dataset
-                print(" > Creating Testing Dataset")
+                print(f" > Creating Testing Dataset {dataset_name}")
                 test_dataset = dataset(
                     datasets=dataset_name,
                     train_val_test_split=train_val_test_split,
