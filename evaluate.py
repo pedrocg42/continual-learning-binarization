@@ -11,9 +11,6 @@ import config
 from my_utils.evaluate import evaluate_dataset_patchwise
 from my_utils.parse_experiment import parse_experiment
 
-DEVICE = "cuda"
-ALL_DATASETS = [["PHI"], ["Salzinnes"], ["Dibco"], ["Einsieldeln"]]  # ["Palm"]
-
 
 @parse_experiment
 def evaluate(
@@ -24,8 +21,7 @@ def evaluate(
     crop_size: Tuple[int],
     batch_size: int,
     steps_per_epoch: int,
-    device: str = DEVICE,
-    all_datasets: List[str] = ALL_DATASETS,
+    all_datasets: List[str] = config.ALL_DATASETS,
     **experiment,
 ):
 
@@ -34,55 +30,58 @@ def evaluate(
     # Building the model
     print("Building architecture")
     model = architecture(**experiment)
-    model.to(device)
+    model.to(config.device)
     print(model)
     print(f"Encoder total parameters: {sum(param.numel() for param in model.parameters())}")
 
     # Laoding different models from an experiment
     model_results = {}
-    for i, dataset_group in enumerate(datasets):
+    for i_cross_val in range(config.cross_val_splits):
+        for i, dataset_group in enumerate(datasets):
 
-        if i == 0:
-            model_name = experiment["name"]
-        model_name = model_name + f"__{'_'.join(dataset_group)}"
-        # model_name = experiment["name"]
-        model_results[model_name] = {}
+            if i == 0:
+                model_name = experiment["name"] + f"_cv_{i_cross_val+1}"
 
-        model_file_path = os.path.join(config.models_path, f"{model_name}.pt")
-        print(f" > Loading model from {model_file_path}")
-        model.load_state_dict(torch.load(model_file_path))
+            model_name = model_name + f"__{'_'.join(dataset_group)}"
+            model_results[model_name] = {}
 
-        # Extracting results for all the datasets
+            model_file_path = os.path.join(config.models_path, f"{model_name}.pt")
+            print(f" > Loading model from {model_file_path}")
+            model.load_state_dict(torch.load(model_file_path))
 
-        for dataset_name in all_datasets:
+            # Extracting results for all the datasets
 
-            model_results[model_name][dataset_name[0]] = {}
+            for dataset_name in all_datasets:
 
-            # Preparing testing dataset
-            print(" > Creating Testing Dataset")
-            test_dataset = dataset(
-                datasets=dataset_name,
-                train_val_test_split=train_val_test_split,
-                split="test",
-                crop_size=crop_size,
-                batch_size=batch_size,
-                steps_per_epoch=steps_per_epoch,
-            )
-            test_dataloader = DataLoader(
-                dataset=test_dataset,
-                batch_size=batch_size,
-                num_workers=4,
-                pin_memory=True,
-            )
+                model_results[model_name][dataset_name[0]] = {}
 
-            model.eval()
+                # Preparing testing dataset
+                print(" > Creating Testing Dataset")
+                test_dataset = dataset(
+                    datasets=dataset_name,
+                    train_val_test_split=train_val_test_split,
+                    split="test",
+                    crop_size=crop_size,
+                    batch_size=batch_size,
+                    steps_per_epoch=steps_per_epoch,
+                )
+                test_dataloader = DataLoader(
+                    dataset=test_dataset,
+                    batch_size=1,
+                    num_workers=1,
+                    pin_memory=True,
+                )
 
-            mse, f1 = evaluate_dataset_patchwise(
-                model=model, dataset=test_dataset, data_loader=test_dataloader, crop_size=crop_size, device=device
-            )
+                model.eval()
 
-            model_results[model_name][dataset_name[0]]["mse"] = mse
-            model_results[model_name][dataset_name[0]]["f1"] = f1
+                mse, f1 = evaluate_dataset_patchwise(
+                    model=model,
+                    data_loader=test_dataloader,
+                    crop_size=crop_size,
+                )
+
+                model_results[model_name][dataset_name[0]]["mse"] = mse
+                model_results[model_name][dataset_name[0]]["f1"] = f1
 
         # Extracting metrics
         print(f" > Saving metrics...")
