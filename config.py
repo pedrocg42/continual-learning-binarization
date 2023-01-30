@@ -2,7 +2,7 @@ import os
 
 seed = 42
 
-device = "cpu"
+device = "cuda"
 
 dataset_path = "data/"
 cross_val_splits = 5
