@@ -210,8 +210,8 @@ def train(
                     pbar.set_postfix({"loss": avg_loss, "f1": avg_f1})
 
                 # Adding logs for every epoch
-                writer.add_scalar("Train Loss", avg_loss, epoch)
-                writer.add_scalar("Train F1 Score", avg_f1, epoch)
+                writer.add_scalar("Loss/Train", avg_loss, epoch)
+                writer.add_scalar("F1 Score/Train", avg_f1, epoch)
 
                 print(" > Evaluating validation")
                 with torch.no_grad():
@@ -225,8 +225,8 @@ def train(
                     )
 
                     # Adding logs for every epoch
-                    writer.add_scalar("Validation Loss", avg_loss, epoch)
-                    writer.add_scalar("Validation F1 Score", val_f1, epoch)
+                    writer.add_scalar("Loss/Val", avg_loss, epoch)
+                    writer.add_scalar("F1 Score/Val", val_f1, epoch)
 
                     # Evaluting epoch results
                     if val_f1 > best_val_f1:
