@@ -302,7 +302,7 @@ class BinDataset(Dataset):
         ]
 
         print(f" > Creating patches for {len(gr_paths)} images found")
-        for gr_path, gt_path in tqdm(zip(gr_paths, gt_paths)):
+        for gr_path, gt_path in tqdm(zip(gr_paths, gt_paths), total=len(gr_paths)):
 
             gr_image = cv2.imread(gr_path)
             gt_image = cv2.imread(gt_path)
