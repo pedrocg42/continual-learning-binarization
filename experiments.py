@@ -45,18 +45,18 @@ baseline_scenario_1 = {
     "criteria": MSELoss,
     "optimizer": Adam,
     "learning_rate": 3e-4,
-    "num_epochs": 400,
+    "num_epochs": 100,
     "batch_size": 32,
     "steps_per_epoch": 50,
-    "patience": 25,
-    "patience_learning_rate": 5,
+    # "patience": 25,
+    # "patience_learning_rate": 5,
 }
 
 # Baselines Vector Quantizer Experiments
-vq_scenario_1 = baseline_scenario_1.copy()
-vq_scenario_1.update(
+vq_scenario_1_1 = baseline_scenario_1.copy()
+vq_scenario_1_1.update(
     {
-        "name": "vq_scenario_1",
+        "name": "vq_scenario_1_1",
         "architecture_type": "vector_quantizer",
         "codebook_size": 8192,
         "num_codebooks": 1,
@@ -66,7 +66,7 @@ vq_scenario_1.update(
     }
 )
 
-vq_scenario_1_64 = vq_scenario_1.copy()
+vq_scenario_1_64 = vq_scenario_1_1.copy()
 vq_scenario_1_64.update(
     {
         "name": "vq_scenario_1_64",
@@ -75,7 +75,7 @@ vq_scenario_1_64.update(
     }
 )
 
-vq_scenario_1_128 = vq_scenario_1.copy()
+vq_scenario_1_128 = vq_scenario_1_1.copy()
 vq_scenario_1_128.update(
     {
         "name": "vq_scenario_1_128",
@@ -84,7 +84,7 @@ vq_scenario_1_128.update(
     }
 )
 
-vq_scenario_1_512 = vq_scenario_1.copy()
+vq_scenario_1_512 = vq_scenario_1_1.copy()
 vq_scenario_1_512.update(
     {
         "name": "vq_scenario_1_512",
@@ -94,10 +94,10 @@ vq_scenario_1_512.update(
 )
 
 # Baselines Discrete Key-Value Bottleneck Experiments
-dkvb_scenario_1 = baseline_scenario_1.copy()
-dkvb_scenario_1.update(
+dkvb_scenario_1_1 = baseline_scenario_1.copy()
+dkvb_scenario_1_1.update(
     {
-        "name": "dkvb_scenario_1",
+        "name": "dkvb_scenario_1_1",
         "architecture_type": "discrete_key_value_bottleneck",
         "codebook_size": 8192,
         "num_codebooks": 1,
@@ -107,7 +107,7 @@ dkvb_scenario_1.update(
     }
 )
 
-dkvb_scenario_1_64 = dkvb_scenario_1.copy()
+dkvb_scenario_1_64 = dkvb_scenario_1_1.copy()
 dkvb_scenario_1_64.update(
     {
         "name": "dkvb_scenario_1_64",
@@ -116,7 +116,7 @@ dkvb_scenario_1_64.update(
     }
 )
 
-dkvb_scenario_1_128 = dkvb_scenario_1.copy()
+dkvb_scenario_1_128 = dkvb_scenario_1_1.copy()
 dkvb_scenario_1_128.update(
     {
         "name": "dkvb_scenario_1_128",
@@ -125,7 +125,7 @@ dkvb_scenario_1_128.update(
     }
 )
 
-dkvb_scenario_1_512 = dkvb_scenario_1.copy()
+dkvb_scenario_1_512 = dkvb_scenario_1_1.copy()
 dkvb_scenario_1_512.update(
     {
         "name": "dkvb_scenario_1_512",
@@ -147,10 +147,10 @@ baseline_scenario_2.update(
 )
 
 # Baselines Vector Quantizer Experiments
-vq_scenario_2 = baseline_scenario_2.copy()
-vq_scenario_2.update(
+vq_scenario_2_1 = baseline_scenario_2.copy()
+vq_scenario_2_1.update(
     {
-        "name": "vq_scenario_2",
+        "name": "vq_scenario_2_1",
         "architecture_type": "vector_quantizer",
         "codebook_size": 8192,
         "num_codebooks": 1,
@@ -160,7 +160,7 @@ vq_scenario_2.update(
     }
 )
 
-vq_scenario_2_64 = vq_scenario_2.copy()
+vq_scenario_2_64 = vq_scenario_2_1.copy()
 vq_scenario_2_64.update(
     {
         "name": "vq_scenario_2_64",
@@ -169,7 +169,7 @@ vq_scenario_2_64.update(
     }
 )
 
-vq_scenario_2_128 = vq_scenario_2.copy()
+vq_scenario_2_128 = vq_scenario_2_1.copy()
 vq_scenario_2_128.update(
     {
         "name": "vq_scenario_2_128",
@@ -178,7 +178,7 @@ vq_scenario_2_128.update(
     }
 )
 
-vq_scenario_2_512 = vq_scenario_2.copy()
+vq_scenario_2_512 = vq_scenario_2_1.copy()
 vq_scenario_2_512.update(
     {
         "name": "vq_scenario_2_512",
@@ -188,10 +188,10 @@ vq_scenario_2_512.update(
 )
 
 # Baselines Discrete Key-Value Bottleneck Experiments
-dkvb_scenario_2 = baseline_scenario_2.copy()
-dkvb_scenario_2.update(
+dkvb_scenario_2_1 = baseline_scenario_2.copy()
+dkvb_scenario_2_1.update(
     {
-        "name": "dkvb_scenario_2",
+        "name": "dkvb_scenario_2_1",
         "architecture_type": "discrete_key_value_bottleneck",
         "codebook_size": 8192,
         "num_codebooks": 1,
@@ -201,7 +201,7 @@ dkvb_scenario_2.update(
     }
 )
 
-dkvb_scenario_2_64 = dkvb_scenario_2.copy()
+dkvb_scenario_2_64 = dkvb_scenario_2_1.copy()
 dkvb_scenario_2_64.update(
     {
         "name": "dkvb_scenario_2_64",
@@ -210,7 +210,7 @@ dkvb_scenario_2_64.update(
     }
 )
 
-dkvb_scenario_2_128 = dkvb_scenario_2.copy()
+dkvb_scenario_2_128 = dkvb_scenario_2_1.copy()
 dkvb_scenario_2_128.update(
     {
         "name": "dkvb_scenario_2_128",
@@ -219,10 +219,10 @@ dkvb_scenario_2_128.update(
     }
 )
 
-dkvb_scenario_2_512 = dkvb_scenario_2.copy()
+dkvb_scenario_2_512 = dkvb_scenario_2_1.copy()
 dkvb_scenario_2_512.update(
     {
-        "name": "dkvb_scenario_1_512",
+        "name": "dkvb_scenario_2_512",
         "codebook_size": 16,
         "num_codebooks": 512,
     }
@@ -242,10 +242,10 @@ baseline_scenario_3.update(
 )
 
 # Baselines Vector Quantizer Experiments
-vq_scenario_3 = baseline_scenario_3.copy()
-vq_scenario_3.update(
+vq_scenario_3_1 = baseline_scenario_3.copy()
+vq_scenario_3_1.update(
     {
-        "name": "vq_scenario_3",
+        "name": "vq_scenario_3_1",
         "architecture_type": "vector_quantizer",
         "codebook_size": 8192,
         "num_codebooks": 1,
@@ -255,7 +255,7 @@ vq_scenario_3.update(
     }
 )
 
-vq_scenario_3_64 = vq_scenario_3.copy()
+vq_scenario_3_64 = vq_scenario_3_1.copy()
 vq_scenario_3_64.update(
     {
         "name": "vq_scenario_3_64",
@@ -264,7 +264,7 @@ vq_scenario_3_64.update(
     }
 )
 
-vq_scenario_3_128 = vq_scenario_3.copy()
+vq_scenario_3_128 = vq_scenario_3_1.copy()
 vq_scenario_3_128.update(
     {
         "name": "vq_scenario_3_128",
@@ -273,7 +273,7 @@ vq_scenario_3_128.update(
     }
 )
 
-vq_scenario_3_512 = vq_scenario_3.copy()
+vq_scenario_3_512 = vq_scenario_3_1.copy()
 vq_scenario_3_512.update(
     {
         "name": "vq_scenario_3_512",
@@ -283,10 +283,10 @@ vq_scenario_3_512.update(
 )
 
 # Baselines Discrete Key-Value Bottleneck Experiments
-dkvb_scenario_3 = baseline_scenario_3.copy()
-dkvb_scenario_3.update(
+dkvb_scenario_3_1 = baseline_scenario_3.copy()
+dkvb_scenario_3_1.update(
     {
-        "name": "dkvb_scenario_3",
+        "name": "dkvb_scenario_3_1",
         "architecture_type": "discrete_key_value_bottleneck",
         "codebook_size": 8192,
         "num_codebooks": 1,
@@ -296,7 +296,7 @@ dkvb_scenario_3.update(
     }
 )
 
-dkvb_scenario_3_64 = dkvb_scenario_3.copy()
+dkvb_scenario_3_64 = dkvb_scenario_3_1.copy()
 dkvb_scenario_3_64.update(
     {
         "name": "dkvb_scenario_3_64",
@@ -305,7 +305,7 @@ dkvb_scenario_3_64.update(
     }
 )
 
-dkvb_scenario_3_128 = dkvb_scenario_3.copy()
+dkvb_scenario_3_128 = dkvb_scenario_3_1.copy()
 dkvb_scenario_3_128.update(
     {
         "name": "dkvb_scenario_3_128",
@@ -314,7 +314,7 @@ dkvb_scenario_3_128.update(
     }
 )
 
-dkvb_scenario_3_512 = dkvb_scenario_3.copy()
+dkvb_scenario_3_512 = dkvb_scenario_3_1.copy()
 dkvb_scenario_3_512.update(
     {
         "name": "dkvb_scenario_3_512",
@@ -337,10 +337,10 @@ baseline_scenario_4.update(
 )
 
 # Baselines Vector Quantizer Experiments
-vq_scenario_4 = baseline_scenario_4.copy()
-vq_scenario_4.update(
+vq_scenario_4_1 = baseline_scenario_4.copy()
+vq_scenario_4_1.update(
     {
-        "name": "vq_scenario_4",
+        "name": "vq_scenario_4_1",
         "architecture_type": "vector_quantizer",
         "codebook_size": 8192,
         "num_codebooks": 1,
@@ -350,7 +350,7 @@ vq_scenario_4.update(
     }
 )
 
-vq_scenario_4_64 = vq_scenario_4.copy()
+vq_scenario_4_64 = vq_scenario_4_1.copy()
 vq_scenario_4_64.update(
     {
         "name": "vq_scenario_4_64",
@@ -359,7 +359,7 @@ vq_scenario_4_64.update(
     }
 )
 
-vq_scenario_4_128 = vq_scenario_4.copy()
+vq_scenario_4_128 = vq_scenario_4_1.copy()
 vq_scenario_4_128.update(
     {
         "name": "vq_scenario_4_128",
@@ -368,7 +368,7 @@ vq_scenario_4_128.update(
     }
 )
 
-vq_scenario_4_512 = vq_scenario_4.copy()
+vq_scenario_4_512 = vq_scenario_4_1.copy()
 vq_scenario_4_512.update(
     {
         "name": "vq_scenario_4_512",
@@ -378,10 +378,10 @@ vq_scenario_4_512.update(
 )
 
 # Baselines Discrete Key-Value Bottleneck Experiments
-dkvb_scenario_4 = baseline_scenario_4.copy()
-dkvb_scenario_4.update(
+dkvb_scenario_4_1 = baseline_scenario_4.copy()
+dkvb_scenario_4_1.update(
     {
-        "name": "dkvb_scenario_4",
+        "name": "dkvb_scenario_4_1",
         "architecture_type": "discrete_key_value_bottleneck",
         "codebook_size": 8192,
         "num_codebooks": 1,
@@ -391,7 +391,7 @@ dkvb_scenario_4.update(
     }
 )
 
-dkvb_scenario_4_64 = dkvb_scenario_4.copy()
+dkvb_scenario_4_64 = dkvb_scenario_4_1.copy()
 dkvb_scenario_4_64.update(
     {
         "name": "dkvb_scenario_4_64",
@@ -400,7 +400,7 @@ dkvb_scenario_4_64.update(
     }
 )
 
-dkvb_scenario_4_128 = dkvb_scenario_4.copy()
+dkvb_scenario_4_128 = dkvb_scenario_4_1.copy()
 dkvb_scenario_4_128.update(
     {
         "name": "dkvb_scenario_4_128",
@@ -409,7 +409,7 @@ dkvb_scenario_4_128.update(
     }
 )
 
-dkvb_scenario_4_512 = dkvb_scenario_4.copy()
+dkvb_scenario_4_512 = dkvb_scenario_4_1.copy()
 dkvb_scenario_4_512.update(
     {
         "name": "dkvb_scenario_4_512",

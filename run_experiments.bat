@@ -8,11 +8,11 @@ python evaluate.py --experiment baseline_scenario_1
 @REM python train.py --experiment baseline_scenario_1
 @REM python evaluate.py --experiment baseline_scenario_1
 
-@REM python train.py --experiment vq_scenario_1
-@REM python evaluate.py --experiment vq_scenario_1
+@REM python train.py --experiment vq_scenario_1_1
+@REM python evaluate.py --experiment vq_scenario_1_1
 
-@REM python train.py --experiment dkvb_scenario_1
-@REM python evaluate.py --experiment dkvb_scenario_1
+@REM python train.py --experiment dkvb_scenario_1_1
+@REM python evaluate.py --experiment dkvb_scenario_1_1
 
 @REM python train.py --experiment vq_scenario_1_64
 @REM python evaluate.py --experiment vq_scenario_1_64
@@ -40,11 +40,11 @@ python evaluate.py --experiment baseline_scenario_1
 @REM python train.py --experiment baseline_scenario_2
 @REM python evaluate.py --experiment baseline_scenario_2
 
-@REM python train.py --experiment vq_scenario_2
-@REM python evaluate.py --experiment vq_scenario_2
+@REM python train.py --experiment vq_scenario_2_1
+@REM python evaluate.py --experiment vq_scenario_2_1
 
-@REM python train.py --experiment dkvb_scenario_2
-@REM python evaluate.py --experiment dkvb_scenario_2
+@REM python train.py --experiment dkvb_scenario_2_1
+@REM python evaluate.py --experiment dkvb_scenario_2_1
 
 @REM python train.py --experiment vq_scenario_2_64
 @REM python evaluate.py --experiment vq_scenario_2_64
@@ -72,11 +72,11 @@ python evaluate.py --experiment baseline_scenario_1
 @REM python train.py --experiment baseline_scenario_3
 @REM python evaluate.py --experiment baseline_scenario_3
 
-@REM python train.py --experiment vq_scenario_3
-@REM python evaluate.py --experiment vq_scenario_3
+@REM python train.py --experiment vq_scenario_3_1
+@REM python evaluate.py --experiment vq_scenario_3_1
 
-@REM python train.py --experiment dkvb_scenario_3
-@REM python evaluate.py --experiment dkvb_scenario_3
+@REM python train.py --experiment dkvb_scenario_3_1
+@REM python evaluate.py --experiment dkvb_scenario_3_1
 
 @REM python train.py --experiment vq_scenario_3_64
 @REM python evaluate.py --experiment vq_scenario_3_64
@@ -104,11 +104,11 @@ python evaluate.py --experiment baseline_scenario_1
 @REM python train.py --experiment baseline_scenario_4
 @REM python evaluate.py --experiment baseline_scenario_4
 
-@REM python train.py --experiment vq_scenario_4
-@REM python evaluate.py --experiment vq_scenario_4
+@REM python train.py --experiment vq_scenario_4_1
+@REM python evaluate.py --experiment vq_scenario_4_1
 
-@REM python train.py --experiment dkvb_scenario_4
-@REM python evaluate.py --experiment dkvb_scenario_4
+@REM python train.py --experiment dkvb_scenario_4_1
+@REM python evaluate.py --experiment dkvb_scenario_4_1
 
 @REM python train.py --experiment vq_scenario_4_64
 @REM python evaluate.py --experiment vq_scenario_4_64

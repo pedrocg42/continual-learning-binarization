@@ -29,8 +29,8 @@ def train(
     num_epochs: int,
     batch_size: int,
     steps_per_epoch: int,
-    patience: int,
-    patience_learning_rate: int,
+    patience: int = None,
+    patience_learning_rate: int = None,
     num_epochs_initialization_keys: int = None,
     force_train: bool = False,
     **experiment,
@@ -43,14 +43,18 @@ def train(
 
     for i_cross_val in range(config.cross_val_splits):
 
-        print(f" > Starting cross-validation: {i_cross_val+1} of {config.cross_val_splits}")
+        print(
+            f" > Starting cross-validation: {i_cross_val+1} of {config.cross_val_splits}"
+        )
 
         # Building the model
         print(" > Building model")
         model = architecture(**experiment)
         model.to(config.device)
         print(model)
-        print(f"> > Total parameters: {sum(param.numel() for param in model.parameters())}")
+        print(
+            f"> > Total parameters: {sum(param.numel() for param in model.parameters())}"
+        )
 
         # Configure optimizer and loss function
         optimizer_ = optimizer(model.parameters(), lr=learning_rate)
@@ -110,7 +114,9 @@ def train(
             writer = SummaryWriter(log_dir=os.path.join(config.logs_path, model_name))
             writer.add_graph(
                 model,
-                torch.zeros((batch_size, 3, *crop_size), dtype=torch.float32).to(config.device),
+                torch.zeros((batch_size, 3, *crop_size), dtype=torch.float32).to(
+                    config.device
+                ),
             )
 
             # Initialization of keys
@@ -130,7 +136,9 @@ def train(
                     with torch.no_grad():
                         for epoch in range(num_epochs_initialization_keys):
 
-                            print(f" > Training epoch {epoch + 1} of {num_epochs_initialization_keys}")
+                            print(
+                                f" > Training epoch {epoch + 1} of {num_epochs_initialization_keys}"
+                            )
 
                             # Epoch training
                             pbar = tqdm(train_dataloader)
@@ -236,14 +244,19 @@ def train(
 
                         torch.save(model.state_dict(), model_file_path)
 
-                        print(f" > New best model found with best F1-Score {val_f1} ({val_loss=})  ")
+                        print(
+                            f" > New best model found with best F1-Score {val_f1} ({val_loss=})  "
+                        )
                         print(f" > New best model saved in {model_file_path}")
                     else:
                         # Reducing learning rate and/or stopping the training
                         patience_iterations += 1
-                        if (patience_iterations % patience_learning_rate) == 0:
+                        if (
+                            patience_learning_rate is not None
+                            and (patience_iterations % patience_learning_rate) == 0
+                        ):
                             learning_rate /= 2.0
-                        if patience_iterations >= patience:
+                        if patience is not None and patience_iterations >= patience:
                             break
 
             writer.close()
