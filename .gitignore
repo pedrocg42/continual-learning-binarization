@@ -3,9 +3,13 @@ __pycache__
 
 # Avoiding to upload heavy results
 results
+result
 
 # Avoiding images
 *.png
 
 # Avoiding data files
 *.zip
+
+# Avoiding environment
+venv

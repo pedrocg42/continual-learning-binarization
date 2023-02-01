@@ -1,5 +1,10 @@
 import os
 
+import logging
+
+logging.getLogger().setLevel(logging.INFO)
+
+
 seed = 42
 
 device = "cuda"
