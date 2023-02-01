@@ -110,14 +110,8 @@ def train(
             )
 
             # Initialiazing Tensorboard logging and adding model graph
-            print(" > Creating TensorBoard writer and adding graph")
+            print(" > Creating TensorBoard writer")
             writer = SummaryWriter(log_dir=os.path.join(config.logs_path, model_name))
-            writer.add_graph(
-                model,
-                torch.zeros((batch_size, 3, *crop_size), dtype=torch.float32).to(
-                    config.device
-                ),
-            )
 
             # Initialization of keys
             if i_dataset == 0:
