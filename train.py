@@ -1,13 +1,11 @@
 import os
 from typing import List, Tuple, Union
 
-import numpy as np
 import fire
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
-from torchvision.utils import make_grid
 from torchmetrics import F1Score
 from tqdm import tqdm
 
@@ -33,6 +31,7 @@ def train(
     patience_learning_rate: int = None,
     num_epochs_initialization_keys: int = None,
     force_train: bool = False,
+    save_best_model: bool = False,
     **experiment,
 ):
 
@@ -227,7 +226,7 @@ def train(
                     )
 
                     # Adding logs for every epoch
-                    writer.add_scalar("Loss/Val", avg_loss, epoch)
+                    writer.add_scalar("Loss/Val", val_loss, epoch)
                     writer.add_scalar("F1 Score/Val", val_f1, epoch)
 
                     # Evaluting epoch results
@@ -236,12 +235,13 @@ def train(
                         best_val_f1 = val_f1
                         patience_iterations = 0
 
-                        torch.save(model.state_dict(), model_file_path)
+                        if save_best_model:
+                            torch.save(model.state_dict(), model_file_path)
 
-                        print(
-                            f" > New best model found with best F1-Score {val_f1} ({val_loss=})  "
-                        )
-                        print(f" > New best model saved in {model_file_path}")
+                            print(
+                                f" > New best model found with best F1-Score {val_f1} ({val_loss=})  "
+                            )
+                            print(f" > New best model saved in {model_file_path}")
                     else:
                         # Reducing learning rate and/or stopping the training
                         patience_iterations += 1
@@ -252,6 +252,10 @@ def train(
                             learning_rate /= 2.0
                         if patience is not None and patience_iterations >= patience:
                             break
+
+                if not save_best_model:
+                    torch.save(model.state_dict(), model_file_path)
+                    print(f" > New model saved with F1-Score {val_f1} ({val_loss=})")
 
             writer.close()
             print(" > Training model {model_name} ended")

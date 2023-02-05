@@ -4,6 +4,7 @@ __pycache__
 # Avoiding to upload heavy results
 results
 result
+*.csv
 
 # Avoiding images
 *.png
