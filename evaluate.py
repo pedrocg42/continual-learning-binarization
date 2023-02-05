@@ -5,7 +5,7 @@ from typing import List, Tuple, Union
 import fire
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 import config
 from my_utils.evaluate import evaluate_dataset_patchwise
@@ -32,11 +32,13 @@ def evaluate(
     model = architecture(**experiment)
     model.to(config.device)
     print(model)
-    print(f"Encoder total parameters: {sum(param.numel() for param in model.parameters())}")
+    print(
+        f"Encoder total parameters: {sum(param.numel() for param in model.parameters())}"
+    )
 
     # Laoding different models from an experiment
-    model_results = {}
     for i_cross_val in range(config.cross_val_splits):
+        model_results = {}
         for i, dataset_group in enumerate(datasets):
 
             if i == 0:
@@ -100,15 +102,19 @@ def evaluate(
             csv_writer.writerow(header)
 
         # Writing results for every model and for each dataset
-        # for model_name in model_results.keys():
-        row_results_f1 = []
-        row_results_mse = []
-        for dataset_name in model_results[model_name].keys():
-            row_results_f1.append(model_results[model_name][dataset_name]["f1"])
-            row_results_mse.append(model_results[model_name][dataset_name]["mse"])
+        for model_name in model_results.keys():
+            row_results_f1 = []
+            row_results_mse = []
+            for dataset_name in model_results[model_name].keys():
+                row_results_f1.append(model_results[model_name][dataset_name]["f1"])
+                row_results_mse.append(model_results[model_name][dataset_name]["mse"])
 
-        row_results = [model_name, np.mean(row_results_f1), np.mean(row_results_mse)] + row_results_f1 + row_results_mse
-        csv_writer.writerow(row_results)
+            row_results = (
+                [model_name, np.mean(row_results_f1), np.mean(row_results_mse)]
+                + row_results_f1
+                + row_results_mse
+            )
+            csv_writer.writerow(row_results)
 
         print(f" > Results saved in {csv_path}")
 
